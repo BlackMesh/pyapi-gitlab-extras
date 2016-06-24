@@ -1,15 +1,17 @@
-__author__ = 'Solomon S. Gifford <sgifford@blackmesh.com>'
-
+# -*- coding: utf-8 -*-
 import gitlab
 import logging
+
+__author__ = 'Solomon S. Gifford <sgifford@blackmesh.com>'
+
+logger = logging.getLogger(__name__)
 
 try:
     import urllib3.contrib.pyopenssl
     urllib3.contrib.pyopenssl.inject_into_urllib3()
 except ImportError:
-    pass
+    logger.error("Failed to monkey-patch urllib3 with PyOpenSSL-backed SSL support", exc_info=True)
 
-logger = logging.getLogger(__name__)
 
 class GitlabWrapper(gitlab.Gitlab):
 
@@ -22,8 +24,14 @@ class GitlabWrapper(gitlab.Gitlab):
             logger.error("Unable to log into git %s" % e)
             raise Exception("Unable to log into git")
 
-    #gname = None is really gname = "any"
     def findproject(self, pname, gname=None, user=False):
+        """Attempts to find a project
+
+        :param pname: project name
+        :param gname: group name, "none" implies "any"
+        :param user:
+        :return: the project or False if not found
+        """
         if not pname:
             logger.error('Missing project name')
             return False
@@ -79,3 +87,18 @@ class GitlabWrapper(gitlab.Gitlab):
         else:
             logger.warning('Project not found to delete')
             return False
+
+    def getbranches(self, project_id, limits=None, delimiter=","):
+        """List all the branches from a project
+
+        :param project_id: project id
+        :param limits: list or comma-separated string of branches to limit
+        :param delimiter: delimiter for branch limits
+        :return: the branches
+        """
+        branches = super(GitlabWrapper, self).getbranches(project_id)
+        if limits:
+            if isinstance(limits, basestring):
+                limits = [limit.strip() for limit in limits.split(delimiter)]
+            branches = [branch for branch in branches if branch in limits]
+        return branches
