@@ -100,5 +100,5 @@ class GitlabWrapper(gitlab.Gitlab):
         if limits:
             if isinstance(limits, basestring):
                 limits = [limit.strip() for limit in limits.split(delimiter)]
-            branches = [branch for branch in branches if branch in limits]
+            branches = [branch for branch in branches if branch['name'] in limits]
         return branches
